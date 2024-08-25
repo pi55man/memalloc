@@ -18,10 +18,12 @@ typedef struct{
 } Chunk_List;
 
 char heap[HEAP_CAP] = {0};
-size_t heap_size = 0;
 
 Chunk_List alloced_chunks[HEAP_ALLOCED_CAP] = {0};
-Chunk_List freed_chunks = {0};
+Chunk_List freed_chunks = {
+	.count = 1,
+	.chunks ={[0]={.start = heap, .size = sizeof(heap)}},
+};
 
 
 
@@ -72,16 +74,22 @@ void chunk_list_insert(Chunk_List *list, void *start, size_t size){
 
 void* heap_alloc(size_t size) {	
 	if(size>0){
-		assert(heap_size+size<=HEAP_CAP);
-		void* ptr = heap + heap_size;
-		heap_size+=size;
-		chunk_list_insert(&alloced_chunks, ptr,size);
-		return ptr;
-	} else { 
-		return NULL;
+	for(size_t i=0;i<freed_chunks.count;++i){
+			const Chunk chunk  = freed_chunks.chunks[i];
+		if(chunk.size >=size){
+			chunk_list_remove(&freed_chunks,i);
+			size_t tail_size = chunk.size - size;
+			chunk_list_insert(&alloced_chunks,chunk.start, size);
+			if(tail_size>0){
+				chunk_list_insert(&freed_chunks,chunk.start+size,tail_size);
+			
+			}
+			return chunk.start;
+		}
 	}
+	}
+	return NULL;
 }
-
 void chunk_list_dump(const Chunk_List* list){
 	printf("chunks:\n");
 	for(size_t i =0;i<list->count;++i){
@@ -106,7 +114,8 @@ void heap_collect(){
 }
 
 int main(){
-for(int i = 0;i<10;++i){
+
+	for(int i = 0;i<10;++i){
 		void *p = heap_alloc(i);
 		if(i%2 == 0){
 			heap_free(p);
