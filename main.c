@@ -128,11 +128,6 @@ void heap_free(void *ptr){
 	}
 }
 
-void heap_collect(){ 
-
-
-}
-
 int main(){
 
 	for(int i = 0;i<10;++i){
